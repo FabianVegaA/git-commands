@@ -1,0 +1,123 @@
+#!/bin/bash
+
+###############################################################################
+# Script Name: git-amend-push
+# Description: Amends changes to the last commit and pushes to remote repository
+# Usage: git amend-push <remote_repo> <remote_branch> <file1> <file2> ... <fileN>
+# Options:
+#   -h, --help    Display help message
+#   -f, --force   Force push changes
+###############################################################################
+
+# Set strict error handling
+set -euo pipefail
+
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Function to display usage information
+show_usage() {
+    cat << EOF
+Usage: $(basename $0) <remote_repo> <remote_branch> <file1> <file2> ... <fileN>
+Options:
+    -h, --help    Display this help message
+    -f, --force   Force push changes
+EOF
+}
+
+# Function to display error messages and exit
+error_exit() {
+    echo -e "${RED}Error: $1${NC}" >&2
+    exit 1
+}
+
+# Function to validate git repository
+validate_git_repo() {
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        error_exit "Not a git repository"
+    fi
+}
+
+# Function to validate remote repository
+validate_remote() {
+    if ! git remote get-url "$1" > /dev/null 2>&1; then
+        error_exit "Remote repository '$1' does not exist"
+    fi
+}
+
+# Function to check if there are changes to commit
+check_changes() {
+    if ! git diff --quiet; then
+        return 0
+    elif ! git diff --cached --quiet; then
+        return 0
+    else
+        error_exit "No changes to commit"
+    fi
+}
+
+# Main function
+main() {
+    local force=false
+    local remote_repo=""
+    local remote_branch=""
+    local files=()
+
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_usage
+                exit 0
+                ;;
+            -f|--force)
+                force=true
+                shift
+                ;;
+            *)
+                if [[ -z "$remote_repo" ]]; then
+                    remote_repo=$1
+                elif [[ -z "$remote_branch" ]]; then
+                    remote_branch=$1
+                else
+                    files+=("$1")
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    # Validate required arguments
+    [[ -z "$remote_repo" ]] && error_exit "Remote repository not specified"
+    [[ -z "$remote_branch" ]] && error_exit "Remote branch not specified"
+    [[ ${#files[@]} -eq 0 ]] && error_exit "No files specified"
+
+    # Validate git repository and remote
+    validate_git_repo
+    validate_remote "$remote_repo"
+
+    # Add files and commit
+    echo "Adding files to stage..."
+    git add "${files[@]}" || error_exit "Failed to add files"
+
+    # Check if there are changes to commit
+    check_changes
+
+    echo "Amending commit..."
+    git commit --amend --no-edit || error_exit "Failed to amend commit"
+
+    # Push changes
+    echo "Pushing changes..."
+    if [[ "$force" = true ]]; then
+        git push "$remote_repo" "$remote_branch" --force || error_exit "Failed to force push changes"
+    else
+        git push "$remote_repo" "$remote_branch" || error_exit "Failed to push changes"
+    fi
+
+    echo -e "${GREEN}Successfully pushed changes to $remote_repo/$remote_branch${NC}"
+}
+
+# Execute main function with all arguments
+main "$@"
