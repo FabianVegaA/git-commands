@@ -1,21 +1,20 @@
 #!/bin/bash
 
-###############################################################################
-# Script Name: git-amend-push
-# Description: Amends changes to the last commit and pushes to remote repository
-# Usage: git amend-push <remote_repo> <remote_branch> <file1> <file2> ... <fileN>
-# Options:
-#   -h, --help    Display help message
-#   -f, --force   Force push changes
-###############################################################################
+########################################################################################
+# Script Name: git-amend-push                                                          #
+# Description: Amends changes to the last commit and pushes to remote repository       #
+# Usage: git amend-push <remote_repo> <remote_branch> <file1> <file2> ... <fileN>      #
+# Options:                                                                             #
+#   -h, --help    Display help message                                                 #
+#   -f, --force   Force push changes                                                   #
+########################################################################################
 
 # Set strict error handling
 set -euo pipefail
 
-# Color definitions
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+source ./commons/validate_git_repo.sh
+source ./commons/check_changes.sh
+source ./commons/error_exit.sh
 
 # Function to display usage information
 show_usage() {
@@ -27,38 +26,12 @@ Options:
 EOF
 }
 
-# Function to display error messages and exit
-error_exit() {
-    echo -e "${RED}Error: $1${NC}" >&2
-    exit 1
-}
-
-# Function to validate git repository
-validate_git_repo() {
-    if ! git rev-parse --git-dir > /dev/null 2>&1; then
-        error_exit "Not a git repository"
-    fi
-}
-
-# Function to validate remote repository
 validate_remote() {
     if ! git remote get-url "$1" > /dev/null 2>&1; then
         error_exit "Remote repository '$1' does not exist"
     fi
 }
 
-# Function to check if there are changes to commit
-check_changes() {
-    if ! git diff --quiet; then
-        return 0
-    elif ! git diff --cached --quiet; then
-        return 0
-    else
-        error_exit "No changes to commit"
-    fi
-}
-
-# Main function
 main() {
     local force=false
     local remote_repo=""
@@ -119,5 +92,4 @@ main() {
     echo -e "${GREEN}Successfully pushed changes to $remote_repo/$remote_branch${NC}"
 }
 
-# Execute main function with all arguments
 main "$@"

@@ -21,7 +21,21 @@ If you are using zsh, add the path to the scripts to the PATH environment variab
 
 ## Commands
 
-### 1. Amend-push
+### 1. Add-commit
+
+```bash
+git add-commit <file1> <file2> ... <fileN> -m "commit message"
+```
+
+This command is used to add the files passed as arguments and commit them with the commit message.
+
+**Example:**
+
+```bash
+  git add-commit README.md -m "Updated README.md"
+```
+
+### 2. Amend-push
 
 ```bash
 git amend-push <remote_repo> <remote_branch> <file1> <file2> ... <fileN>
