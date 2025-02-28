@@ -1,0 +1,63 @@
+#!/bin/bash
+
+###############################################################################
+# Script Name: git-add-commit                                                 #
+# Description: Adds and commits changes to the local repository               #
+# Usage: git add-commit <file1> <file2> ... <fileN>                           #
+# Options:                                                                    #
+#   -h, --help    Display help message                                        #
+#   -m, --message Commit message                                              #
+###############################################################################
+set -euo pipefail
+
+source ./commons/validate_git_repo.sh
+source ./commons/check_changes.sh
+source ./commons/error_exit.sh
+
+show_usage() {
+    cat << EOF
+Usage: $(basename $0) <file1> <file2> ... <fileN>
+Options:
+    -h, --help    Display this help message
+    -m, --message Commit message
+EOF
+}
+
+add_commit() {
+    git add "${files[@]}"
+    git commit -m "$commit_message"
+}
+
+main() {
+    local commit_message=""
+    local files=()
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_usage
+                exit 0
+                ;;
+            -m|--message)
+                commit_message="$2"
+                shift
+                ;;
+            *)
+                if [[ -f "$1" ]] || [[ -d "$1" ]]; then
+                    files+=("$1")
+                else
+                    error_exit "File not found: $1"
+                fi
+        esac
+        shift
+    done
+
+    [[ -z "$commit_message" ]] && error_exit "Commit message is required"
+    [[ ${#files[@]} -eq 0 ]] && error_exit "No files specified"
+
+    validate_git_repo
+    check_changes
+    add_commit "$@"
+}
+
+main "$@"
